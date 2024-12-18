@@ -35,6 +35,11 @@ def discover_devices(timeout: int = 1):
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+    logging.basicConfig(
+        format='%(asctime)s - %(levelname)8s - %(name)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        level=logging.DEBUG,
+        stream=sys.stdout
+    )
 
     discover_devices()
