@@ -1,7 +1,9 @@
+import json
 import logging
 import socket
 
-BROADCAST_PORT = 3000
+from const import BROADCAST_PORT, MESSAGE_ENCODING
+from printer import SDCPPrinter
 
 logger = logging.getLogger(__name__)
 
@@ -12,4 +14,10 @@ def discover_devices():
         sock.sendto(b'M99999', ('<broadcast>', BROADCAST_PORT))
 
         raw_data, address = sock.recvfrom(8192)
-        logger.debug(f'Reply from {address[0]}: {raw_data.decode()}')
+        logger.debug(
+            f'Reply from {address[0]}: {raw_data.decode(MESSAGE_ENCODING)}')
+        printer_json = json.loads(raw_data.decode(MESSAGE_ENCODING))
+        printer_object = SDCPPrinter(printer_json)
+        logger.info(f'Found printer: {printer_object}')
+
+    return printer_object
