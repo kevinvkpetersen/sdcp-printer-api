@@ -1,0 +1,22 @@
+[project]
+name = "sdcp_printer"
+version = "0.1.0"
+authors = [
+    { name = "Kevin Petersen", email = "kevinvkpetersen@gmail.com" },
+]
+description = "API to communicate with 3D printers using the SDCP protocol."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/kevinvkpetersen/sdcp-printer-api"
+Issues = "https://github.com/kevinvkpetersen/sdcp-printer-api/issues"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
