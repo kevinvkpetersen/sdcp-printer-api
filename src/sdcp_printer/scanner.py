@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import logging
 import socket
@@ -23,7 +25,8 @@ def discover_devices(timeout: int = 1) -> list[SDCPPrinter]:
                 device_response, address = sock.recvfrom(8192)
                 logger.debug(
                     f'Reply from {address[0]}: {device_response.decode(MESSAGE_ENCODING)}')
-                printer_json = json.loads(device_response.decode(MESSAGE_ENCODING))
+                printer_json = json.loads(
+                    device_response.decode(MESSAGE_ENCODING))
                 printers.append(SDCPPrinter(printer_json))
             except socket.timeout:
                 logger.info('Done scanning')
