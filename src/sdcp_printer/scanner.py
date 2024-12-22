@@ -20,10 +20,10 @@ def discover_devices(timeout: int = 1) -> list[SDCPPrinter]:
         logger.info('Starting scan')
         while True:
             try:
-                raw_data, address = sock.recvfrom(8192)
+                device_response, address = sock.recvfrom(8192)
                 logger.debug(
-                    f'Reply from {address[0]}: {raw_data.decode(MESSAGE_ENCODING)}')
-                printer_json = json.loads(raw_data.decode(MESSAGE_ENCODING))
+                    f'Reply from {address[0]}: {device_response.decode(MESSAGE_ENCODING)}')
+                printer_json = json.loads(device_response.decode(MESSAGE_ENCODING))
                 printers.append(SDCPPrinter(printer_json))
             except socket.timeout:
                 logger.info('Done scanning')
