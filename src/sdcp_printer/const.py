@@ -10,8 +10,9 @@ MESSAGE_ENCODING = 'utf-8'
 
 class SDCPCommand(Enum):
     '''Values for the Cmd field.'''
-    STATUS = 0,
+    STATUS = 0
+
 
 class SDCPFrom(Enum):
     '''Values for the From field.'''
-    PC = 0,
+    PC = 0
