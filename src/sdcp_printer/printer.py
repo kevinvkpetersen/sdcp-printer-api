@@ -8,9 +8,9 @@ import websocket
 
 from contextlib import closing
 
-from const import PRINTER_PORT
-from message import SDCPMessage, SDCPResponseMessage, SDCPStatusMessage
-from request import SDCPStatusRequest
+from .const import PRINTER_PORT
+from .message import SDCPMessage, SDCPResponseMessage, SDCPStatusMessage
+from .request import SDCPStatusRequest
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,8 @@ class SDCPPrinter:
 
     def stop_listening(self) -> None:
         '''Closes the connection to the printer.'''
-        self._connection.close()
+        # TODO: Make sure this is more reliably called. Ideally in __exit__ using the with statement.
+        self._connection and self._connection.close()
 
     def _on_open(self, ws) -> None:
         logger.info(f'{self._ip_address}: Connection opened')
@@ -106,10 +107,11 @@ class SDCPPrinter:
         if receive_message:
             if expect_response:
                 response: SDCPResponseMessage = self._on_message(
+                    connection,
                     connection.recv())
                 if not response.is_success():
                     raise Exception('Request failed')
-            return self._on_message(connection.recv())
+            return self._on_message(connection, connection.recv())
 
     def _update_status(self, message: SDCPStatusMessage) -> None:
         '''Updates the printer's status fields.'''

@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING
 import os
 import time
 
-from const import SDCPCommand, SDCPFrom
+from .const import SDCPCommand, SDCPFrom
 if TYPE_CHECKING:
-    from printer import SDCPPrinter
+    from .printer import SDCPPrinter
 
 
 class SDCPRequest:

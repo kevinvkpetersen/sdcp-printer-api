@@ -4,8 +4,8 @@ import json
 import logging
 import socket
 
-from const import BROADCAST_PORT, MESSAGE_ENCODING
-from printer import SDCPPrinter
+from .const import BROADCAST_PORT, MESSAGE_ENCODING
+from .printer import SDCPPrinter
 
 logger = logging.getLogger(__name__)
 
