@@ -5,9 +5,7 @@ import logging
 import socket
 
 from . import SDCPPrinter
-
-DISCOVERY_PORT = 3000
-MESSAGE_ENCODING = "utf-8"
+from . import DISCOVERY_PORT, MESSAGE_ENCODING
 
 logger = logging.getLogger(__name__)
 

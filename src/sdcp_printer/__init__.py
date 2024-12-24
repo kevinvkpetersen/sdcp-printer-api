@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import socket
 import threading
 import time
 import websocket
@@ -12,6 +13,9 @@ from .message import SDCPMessage, SDCPResponseMessage, SDCPStatusMessage
 from .request import SDCPStatusRequest
 
 PRINTER_PORT = 3030
+DISCOVERY_PORT = 3000
+
+MESSAGE_ENCODING = "utf-8"
 
 logger = logging.getLogger(__package__)
 
@@ -38,6 +42,25 @@ class SDCPPrinter:
     @property
     def _websocket_url(self) -> str:
         return f"ws://{self._ip_address}:{PRINTER_PORT}/websocket"
+
+    @staticmethod
+    def get_printer_info(ip_address: str, timeout: int = 1) -> SDCPPrinter:
+        """Gets information about a printer given its IP address."""
+        logger.info(f"Getting printer info for {ip_address}")
+
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.settimeout(timeout)
+            sock.sendto(b"M99999", (ip_address, DISCOVERY_PORT))
+
+            try:
+                device_response = sock.recv(8192)
+                logger.debug(f"Reply from {ip_address}: {device_response.decode(MESSAGE_ENCODING)}")
+                printer_json = json.loads(device_response.decode(MESSAGE_ENCODING))
+                return SDCPPrinter(printer_json)
+            except socket.timeout:
+                raise TimeoutError(f"Timed out waiting for response from {ip_address}")
+            except json.JSONDecodeError:
+                raise ValueError(f"Invalid JSON from {ip_address}")
 
     def start_listening(self, timeout: int = 1) -> None:
         """Opens a persistent connection to the printer to listen for messages."""
