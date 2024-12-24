@@ -34,9 +34,19 @@ class SDCPResponseMessage(SDCPMessage):
         super().__init__(message_json)
         self.ack = message_json['Data']['Data']['Ack']
 
+    @property
     def is_success(self) -> bool:
         '''Returns True if the response was successful.'''
         return self.ack == 0
+
+    @property
+    def error_message(self) -> str | None:
+        '''Returns the error message if the response was not successful.'''
+        match self.ack:
+            case 0:
+                return None
+            case _:
+                return f'Unknown error for ACK value: {self.ack}'
 
 
 class SDCPStatusMessage(SDCPMessage):

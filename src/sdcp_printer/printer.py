@@ -38,7 +38,7 @@ class SDCPPrinter:
     def _websocket_url(self) -> str:
         return f'ws://{self._ip_address}:{PRINTER_PORT}/websocket'
 
-    def start_listening(self) -> None:
+    def start_listening(self, timeout: int = 1) -> None:
         '''Opens a persistent connection to the printer to listen for messages.'''
         self._connection = websocket.WebSocketApp(
             self._websocket_url,
@@ -46,9 +46,17 @@ class SDCPPrinter:
             on_close=self._on_close,
             on_message=self._on_message,
         )
+
+        logger.info(f'{self._ip_address}: Opening connection')
         threading.Thread(target=self._connection.run_forever).start()
+
+        start_time = time.time()
         while not self._is_connected:
+            if timeout > 0 and time.time() - start_time > timeout:
+                raise TimeoutError('Connection timed out')
             time.sleep(0.1)
+
+        logger.info(f'{self._ip_address}: Persistent connection established')
 
     def stop_listening(self) -> None:
         '''Closes the connection to the printer.'''
@@ -56,14 +64,17 @@ class SDCPPrinter:
         self._connection and self._connection.close()
 
     def _on_open(self, ws) -> None:
+        '''Callback for when the connection is opened.'''
         logger.info(f'{self._ip_address}: Connection opened')
         self._is_connected = True
 
     def _on_close(self, ws, close_status_code, close_msg) -> None:
+        '''Callback for when the connection is closed.'''
         logger.info(f'{self._ip_address}: Connection closed')
         self._is_connected = False
 
     def _on_message(self, ws, message: str) -> SDCPMessage:
+        '''Callback for when a message is received.'''
         logger.debug(f'{self._ip_address}: Message received: {message}')
         parsed_message = SDCPMessage.parse(message)
 
@@ -104,13 +115,16 @@ class SDCPPrinter:
             f'{self._ip_address}: Sending request with payload: {payload}')
         connection.send(json.dumps(payload))
 
+        # TODO: Add timeout
         if receive_message:
             if expect_response:
                 response: SDCPResponseMessage = self._on_message(
                     connection,
-                    connection.recv())
-                if not response.is_success():
-                    raise Exception('Request failed')
+                    connection.recv()
+                )
+                if not response.is_success:
+                    raise AssertionError(
+                        f'Request failed: {response.error_message}')
             return self._on_message(connection, connection.recv())
 
     def _update_status(self, message: SDCPStatusMessage) -> None:
