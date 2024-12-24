@@ -2,11 +2,6 @@
 
 from enum import Enum
 
-BROADCAST_PORT = 3000
-PRINTER_PORT = 3030
-
-MESSAGE_ENCODING = 'utf-8'
-
 
 class SDCPCommand(Enum):
     '''Values for the Cmd field.'''

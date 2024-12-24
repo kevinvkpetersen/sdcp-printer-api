@@ -4,8 +4,10 @@ import json
 import logging
 import socket
 
-from .const import BROADCAST_PORT, MESSAGE_ENCODING
-from .printer import SDCPPrinter
+from . import SDCPPrinter
+
+DISCOVERY_PORT = 3000
+MESSAGE_ENCODING = 'utf-8'
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +19,7 @@ def discover_devices(timeout: int = 1) -> list[SDCPPrinter]:
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         sock.settimeout(timeout)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, timeout)
-        sock.sendto(b'M99999', ('<broadcast>', BROADCAST_PORT))
+        sock.sendto(b'M99999', ('<broadcast>', DISCOVERY_PORT))
 
         logger.info('Starting scan')
         while True:
