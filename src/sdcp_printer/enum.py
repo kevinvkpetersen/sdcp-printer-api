@@ -13,3 +13,13 @@ class SDCPFrom(Enum):
     """Values for the From field."""
 
     PC = 0
+
+
+class SDCPMachineStatus(Enum):
+    """Values for the CurrentStatus and PreviousStatus fields in the status message."""
+
+    IDLE = 0  # Idle
+    PRINTING = 1  # Executing print task
+    FILE_TRANSFER = 2  # File transfer in progress
+    EXPOSURE_TEST = 3  # Exposure test in progress
+    DEVICE_TEST = 4  # Device self-check in progress

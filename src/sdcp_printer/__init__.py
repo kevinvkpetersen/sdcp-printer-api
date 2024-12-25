@@ -9,6 +9,7 @@ import websocket
 
 from contextlib import closing
 
+from .enum import SDCPMachineStatus
 from .message import SDCPMessage, SDCPResponseMessage, SDCPStatusMessage
 from .request import SDCPStatusRequest
 
@@ -21,15 +22,15 @@ logger = logging.getLogger(__package__)
 
 
 class SDCPPrinter:
+    _connection: websocket.WebSocketApp = None
+    _is_connected: bool = False
+
+    _current_status: list[SDCPMachineStatus] = None
+
     def __init__(self, discovery_json: dict):
         self._id: str = discovery_json["Id"]
         self._ip_address: str = discovery_json["Data"]["MainboardIP"]
         self._mainboard_id: str = discovery_json["Data"]["MainboardID"]
-
-        self._connection = None
-        self._is_connected = False
-
-        self._status = None
 
     @property
     def id(self) -> str:
@@ -43,6 +44,20 @@ class SDCPPrinter:
     def _websocket_url(self) -> str:
         return f"ws://{self._ip_address}:{PRINTER_PORT}/websocket"
 
+    @property
+    def is_idle(self) -> bool:
+        return (
+            self._current_status is not None
+            and SDCPMachineStatus.IDLE in self._current_status
+        )
+
+    @property
+    def is_printing(self) -> bool:
+        return (
+            self._current_status is not None
+            and SDCPMachineStatus.PRINTING in self._current_status
+        )
+
     @staticmethod
     def get_printer_info(ip_address: str, timeout: int = 1) -> SDCPPrinter:
         """Gets information about a printer given its IP address."""
@@ -54,7 +69,9 @@ class SDCPPrinter:
 
             try:
                 device_response = sock.recv(8192)
-                logger.debug(f"Reply from {ip_address}: {device_response.decode(MESSAGE_ENCODING)}")
+                logger.debug(
+                    f"Reply from {ip_address}: {device_response.decode(MESSAGE_ENCODING)}"
+                )
                 printer_json = json.loads(device_response.decode(MESSAGE_ENCODING))
                 return SDCPPrinter(printer_json)
             except socket.timeout:
@@ -157,5 +174,7 @@ class SDCPPrinter:
 
     def _update_status(self, message: SDCPStatusMessage) -> None:
         """Updates the printer's status fields."""
-        self._status = message.status
-        logger.info(f"{self._ip_address}: Status updated: {self._status}")
+        self._current_status = [
+            SDCPMachineStatus(status) for status in self._current_status
+        ]
+        logger.info(f"{self._ip_address}: Status updated: {self._current_status}")
