@@ -172,9 +172,7 @@ class SDCPPrinter:
                     raise AssertionError(f"Request failed: {response.error_message}")
             return self._on_message(connection, connection.recv())
 
-    def _update_status(self, message: SDCPStatusMessage) -> None:
+    def _update_status(self, status_message: SDCPStatusMessage) -> None:
         """Updates the printer's status fields."""
-        self._current_status = [
-            SDCPMachineStatus(status) for status in self._current_status
-        ]
+        self._current_status = status_message.current_status
         logger.info(f"{self._ip_address}: Status updated: {self._current_status}")
