@@ -1,10 +1,10 @@
 """Classes to handle requests sent to the printer."""
 
 from __future__ import annotations
-from typing import TYPE_CHECKING
 
 import os
 import time
+from typing import TYPE_CHECKING
 
 from .enum import SDCPCommand, SDCPFrom
 
@@ -13,6 +13,8 @@ if TYPE_CHECKING:
 
 
 class SDCPRequest:
+    """Base class for requests to the printer."""
+
     @staticmethod
     def build(
         printer: SDCPPrinter,
@@ -36,6 +38,8 @@ class SDCPRequest:
 
 
 class SDCPStatusRequest(SDCPRequest):
+    """Class to build a request to get the printer's status."""
+
     @staticmethod
     def build(printer: SDCPPrinter, sdcp_from: SDCPFrom = SDCPFrom.PC) -> dict:
         """Builds a request to get the printer's status."""

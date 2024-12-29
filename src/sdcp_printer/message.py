@@ -9,7 +9,10 @@ logger = logging.getLogger(__name__)
 
 
 class SDCPMessage:
+    """Base class to represent a message received from the printer."""
+
     def __init__(self, message_json: dict):
+        """Constructor."""
         self.topic = message_json["Topic"].split("/")[1]
 
     @staticmethod
@@ -31,18 +34,21 @@ class SDCPMessage:
 
 
 class SDCPResponseMessage(SDCPMessage):
+    """Message received as a direct response to a request."""
+
     def __init__(self, message_json: dict):
+        """Constructor."""
         super().__init__(message_json)
         self.ack = message_json["Data"]["Data"]["Ack"]
 
     @property
     def is_success(self) -> bool:
-        """Returns True if the response was successful."""
+        """Returns True if the request was successful."""
         return self.ack == 0
 
     @property
     def error_message(self) -> str | None:
-        """Returns the error message if the response was not successful."""
+        """Returns the error message if the request was unsuccessful."""
         match self.ack:
             case 0:
                 return None
@@ -51,6 +57,9 @@ class SDCPResponseMessage(SDCPMessage):
 
 
 class SDCPStatusMessage(SDCPMessage):
+    """Message received with the status details of the printer."""
+
     def __init__(self, message_json: dict):
+        """Constructor."""
         super().__init__(message_json)
         self.status = message_json["Status"]["CurrentStatus"]

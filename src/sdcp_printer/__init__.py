@@ -1,3 +1,5 @@
+"""Main module for the SDCP Printer API."""
+
 from __future__ import annotations
 
 import json
@@ -5,9 +7,9 @@ import logging
 import socket
 import threading
 import time
-import websocket
-
 from contextlib import closing
+
+import websocket
 
 from .message import SDCPMessage, SDCPResponseMessage, SDCPStatusMessage
 from .request import SDCPStatusRequest
@@ -21,34 +23,42 @@ logger = logging.getLogger(__package__)
 
 
 class SDCPPrinter:
+    """Class to represent a printer discovered on the network."""
+
+    _connection = None
+    _is_connected = False
+
+    _status = None
+
     def __init__(self, discovery_json: dict):
+        """Constructor."""
         self._id: str = discovery_json["Id"]
         self._ip_address: str = discovery_json["Data"]["MainboardIP"]
         self._mainboard_id: str = discovery_json["Data"]["MainboardID"]
 
-        self._connection = None
-        self._is_connected = False
-
-        self._status = None
-
     @property
     def id(self) -> str:
+        """ID of the printer."""
         return self._id
-    
+
     @property
     def ip_address(self) -> str:
+        """IP address of the printer."""
         return self._ip_address
 
     @property
     def mainboard_id(self) -> str:
+        """Mainboard ID of the printer."""
         return self._mainboard_id
 
     @property
     def _websocket_url(self) -> str:
+        """URL for the printer's websocket connection."""
         return f"ws://{self._ip_address}:{PRINTER_PORT}/websocket"
-    
+
     @property
     def status(self) -> dict:
+        """The printer's status details."""
         return self._status
 
     @staticmethod
@@ -62,7 +72,9 @@ class SDCPPrinter:
 
             try:
                 device_response = sock.recv(8192)
-                logger.debug(f"Reply from {ip_address}: {device_response.decode(MESSAGE_ENCODING)}")
+                logger.debug(
+                    f"Reply from {ip_address}: {device_response.decode(MESSAGE_ENCODING)}"
+                )
                 printer_json = json.loads(device_response.decode(MESSAGE_ENCODING))
                 return SDCPPrinter(printer_json)
             except socket.timeout:

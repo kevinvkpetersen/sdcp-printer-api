@@ -1,0 +1,7 @@
+{
+    "prettier.tabWidth": 4,
+    "pylint.importStrategy": "fromEnvironment",
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff"
+    }
+}

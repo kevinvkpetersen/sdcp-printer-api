@@ -1,11 +1,10 @@
-from __future__ import annotations
+"""Module for discovering SDCP printers on the network."""
 
 import json
 import logging
 import socket
 
-from . import SDCPPrinter
-from . import DISCOVERY_PORT, MESSAGE_ENCODING
+from . import DISCOVERY_PORT, MESSAGE_ENCODING, SDCPPrinter
 
 logger = logging.getLogger(__name__)
 

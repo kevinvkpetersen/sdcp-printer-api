@@ -12,4 +12,4 @@ class SDCPCommand(Enum):
 class SDCPFrom(Enum):
     """Values for the From field."""
 
-    PC = 0
+    PC = 0  # Local PC Software Local Area Network
