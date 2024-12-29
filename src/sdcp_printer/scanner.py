@@ -5,6 +5,7 @@ import logging
 import socket
 
 from . import DISCOVERY_PORT, MESSAGE_ENCODING, SDCPPrinter
+from .message import SDCPDiscoveryMessage
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +26,17 @@ def discover_devices(timeout: int = 1) -> list[SDCPPrinter]:
                 logger.debug(
                     f"Reply from {address[0]}: {device_response.decode(MESSAGE_ENCODING)}"
                 )
-                printer_json = json.loads(device_response.decode(MESSAGE_ENCODING))
-                printers.append(SDCPPrinter(printer_json))
+                discovery_message = SDCPDiscoveryMessage.parse(
+                    device_response.decode(MESSAGE_ENCODING)
+                )
+                printers.append(
+                    SDCPPrinter(
+                        discovery_message.id,
+                        discovery_message.ip_address,
+                        discovery_message.mainboard_id,
+                        discovery_message,
+                    )
+                )
             except socket.timeout:
                 logger.info("Done scanning")
                 break

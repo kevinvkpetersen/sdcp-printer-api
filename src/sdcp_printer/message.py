@@ -8,6 +8,34 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class SDCPDiscoveryMessage:
+    """Message received as a reply to the broadcast message."""
+
+    def __init__(self, message_json: dict):
+        self._message_json = message_json
+
+    @property
+    def id(self) -> str:
+        """Returns the ID of the printer."""
+        return self._message_json["Id"]
+
+    @property
+    def ip_address(self) -> str:
+        """Returns the IP address of the printer."""
+        return self._message_json["Data"]["MainboardIP"]
+
+    @property
+    def mainboard_id(self) -> str:
+        """Returns the mainboard ID of the printer."""
+        return self._message_json["Data"]["MainboardID"]
+
+    @staticmethod
+    def parse(message: str) -> SDCPDiscoveryMessage:
+        """Parses a discovery message from the printer."""
+        logger.debug("Discovery message: %s", message)
+        return SDCPDiscoveryMessage(json.loads(message))
+
+
 class SDCPMessage:
     """Base class to represent a message received from the printer."""
 

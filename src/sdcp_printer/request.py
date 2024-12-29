@@ -24,7 +24,7 @@ class SDCPRequest:
     ) -> dict:
         """Builds a request to be sent to the printer."""
         return {
-            "Id": printer.id,
+            "Id": printer.uuid,
             "Data": {
                 "Cmd": command.value,
                 "Data": data,
