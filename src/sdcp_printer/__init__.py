@@ -34,6 +34,10 @@ class SDCPPrinter:
     @property
     def id(self) -> str:
         return self._id
+    
+    @property
+    def ip_address(self) -> str:
+        return self._ip_address
 
     @property
     def mainboard_id(self) -> str:
@@ -42,6 +46,10 @@ class SDCPPrinter:
     @property
     def _websocket_url(self) -> str:
         return f"ws://{self._ip_address}:{PRINTER_PORT}/websocket"
+    
+    @property
+    def status(self) -> dict:
+        return self._status
 
     @staticmethod
     def get_printer_info(ip_address: str, timeout: int = 1) -> SDCPPrinter:
