@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import socket
 import threading
 import time
 from contextlib import closing
@@ -53,50 +52,40 @@ class SDCPPrinter:
         self._discovery_message = discovery_message
 
     @staticmethod
-    def get_printer_info(ip_address: str, timeout: int = 1) -> SDCPPrinter:
+    def get_printer(ip_address: str, timeout: int = 1) -> SDCPPrinter:
+        """Gets information about a printer given its IP address."""
+
+        return asyncio.run(SDCPPrinter.get_printer_async(ip_address, timeout))
+
+    @staticmethod
+    async def get_printer_async(ip_address: str, timeout: int = None) -> SDCPPrinter:
         """Gets information about a printer given its IP address."""
         _logger.info(f"Getting printer info for {ip_address}")
 
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-            sock.settimeout(timeout)
-            sock.sendto(b"M99999", (ip_address, DISCOVERY_PORT))
+        try:
+            async with AsyncUDPConnection(ip_address, DISCOVERY_PORT, timeout) as conn:
+                await conn.send(b"M99999", timeout)
 
-            try:
-                device_response = sock.recv(8192)
+                device_response = await conn.receive(timeout)
                 _logger.debug(
                     f"Reply from {ip_address}: {device_response.decode(MESSAGE_ENCODING)}"
                 )
                 discovery_message = SDCPDiscoveryMessage.parse(
                     device_response.decode(MESSAGE_ENCODING)
                 )
+
                 return SDCPPrinter(
                     discovery_message.id,
                     discovery_message.ip_address,
                     discovery_message.mainboard_id,
                     discovery_message,
                 )
-            except socket.timeout:
-                raise TimeoutError(f"Timed out waiting for response from {ip_address}")
-            except json.JSONDecodeError:
-                raise ValueError(f"Invalid JSON from {ip_address}")
-
-    @staticmethod
-    async def async_get_printer(ip_address: str) -> SDCPPrinter:
-        """Gets information about a printer given its IP address."""
-        async with AsyncUDPConnection(ip_address, DISCOVERY_PORT) as conn:
-            await conn.send(b"M99999")
-
-            device_response = await conn.receive()
-            discovery_message = SDCPDiscoveryMessage.parse(
-                device_response.decode(MESSAGE_ENCODING)
-            )
-
-            return SDCPPrinter(
-                discovery_message.id,
-                discovery_message.ip_address,
-                discovery_message.mainboard_id,
-                discovery_message,
-            )
+        except TimeoutError as e:
+            raise TimeoutError(
+                f"Timed out waiting for response from {ip_address}"
+            ) from e
+        except AttributeError as e:
+            raise AttributeError(f"Invalid JSON from {ip_address}") from e
 
     # region Properties
     @property

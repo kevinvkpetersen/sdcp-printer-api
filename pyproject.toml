@@ -22,7 +22,7 @@ Homepage = "https://github.com/kevinvkpetersen/sdcp-printer-api"
 Issues = "https://github.com/kevinvkpetersen/sdcp-printer-api/issues"
 
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.pylint."MESSAGES CONTROL"]
@@ -31,11 +31,9 @@ build-backend = "setuptools.build_meta"
 # unused-argument - generic callbacks and setup methods create a lot of warnings
 # arguments-differ - overloads with different arguments
 # expression-not-assigned - null-guard falsely triggers this
-# raise-missing-from - prefer to raise without from
 disable = """
     logging-fstring-interpolation,
     unused-argument,
     arguments-differ,
     expression-not-assigned,
-    raise-missing-from,
 """
