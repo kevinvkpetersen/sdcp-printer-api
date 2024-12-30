@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 class SDCPDiscoveryMessage:
@@ -32,7 +32,7 @@ class SDCPDiscoveryMessage:
     @staticmethod
     def parse(message: str) -> SDCPDiscoveryMessage:
         """Parses a discovery message from the printer."""
-        logger.debug("Discovery message: %s", message)
+        _logger.debug("Discovery message: %s", message)
         return SDCPDiscoveryMessage(json.loads(message))
 
 
@@ -47,18 +47,18 @@ class SDCPMessage:
     @staticmethod
     def parse(message: str) -> SDCPMessage:
         """Parses a message from the printer."""
-        logger.debug(f"Message: {message}")
+        _logger.debug(f"Message: {message}")
         message_json = json.loads(message)
 
         topic = message_json["Topic"].split("/")[1]
-        logger.debug(f"Topic: {topic}")
+        _logger.debug(f"Topic: {topic}")
         match topic:
             case "response":
                 return SDCPResponseMessage(message_json)
             case "status":
                 return SDCPStatusMessage(message_json)
             case _:
-                logger.warning(f"Unknown topic: {topic}")
+                _logger.warning(f"Unknown topic: {topic}")
                 return SDCPMessage(message_json)
 
 

@@ -7,7 +7,7 @@ import socket
 from . import DISCOVERY_PORT, MESSAGE_ENCODING, SDCPPrinter
 from .message import SDCPDiscoveryMessage
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 def discover_devices(timeout: int = 1) -> list[SDCPPrinter]:
@@ -19,11 +19,11 @@ def discover_devices(timeout: int = 1) -> list[SDCPPrinter]:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, timeout)
         sock.sendto(b"M99999", ("<broadcast>", DISCOVERY_PORT))
 
-        logger.info("Starting scan")
+        _logger.info("Starting scan")
         while True:
             try:
                 device_response, address = sock.recvfrom(8192)
-                logger.debug(
+                _logger.debug(
                     f"Reply from {address[0]}: {device_response.decode(MESSAGE_ENCODING)}"
                 )
                 discovery_message = SDCPDiscoveryMessage.parse(
@@ -38,9 +38,9 @@ def discover_devices(timeout: int = 1) -> list[SDCPPrinter]:
                     )
                 )
             except socket.timeout:
-                logger.info("Done scanning")
+                _logger.info("Done scanning")
                 break
             except json.JSONDecodeError:
-                logger.error(f"Invalid JSON from {address[0]}")
+                _logger.error(f"Invalid JSON from {address[0]}")
 
     return printers
