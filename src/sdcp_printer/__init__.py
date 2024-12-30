@@ -12,6 +12,7 @@ from contextlib import closing
 
 import websocket
 
+from .async_udp import AsyncUDPConnection
 from .message import (
     SDCPDiscoveryMessage,
     SDCPMessage,
@@ -78,6 +79,24 @@ class SDCPPrinter:
                 raise TimeoutError(f"Timed out waiting for response from {ip_address}")
             except json.JSONDecodeError:
                 raise ValueError(f"Invalid JSON from {ip_address}")
+
+    @staticmethod
+    async def async_get_printer(ip_address: str) -> SDCPPrinter:
+        """Gets information about a printer given its IP address."""
+        async with AsyncUDPConnection(ip_address, DISCOVERY_PORT) as conn:
+            await conn.send(b"M99999")
+
+            device_response = await conn.receive()
+            discovery_message = SDCPDiscoveryMessage.parse(
+                device_response.decode(MESSAGE_ENCODING)
+            )
+
+            return SDCPPrinter(
+                discovery_message.id,
+                discovery_message.ip_address,
+                discovery_message.mainboard_id,
+                discovery_message,
+            )
 
     # region Properties
     @property
