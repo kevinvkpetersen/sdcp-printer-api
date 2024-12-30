@@ -32,6 +32,7 @@ class SDCPPrinter:
 
     _connection: websocket.WebSocketApp | None = None
     _is_connected: bool = False
+    _callbacks: list[callable] = []
 
     _discovery_message: SDCPDiscoveryMessage | None = None
     _status_message: SDCPStatusMessage | None = None
@@ -150,10 +151,25 @@ class SDCPPrinter:
                 pass
             case "status":
                 self._update_status(parsed_message)
+                self._fire_callbacks()
             case _:
                 logger.warning(f"{self._ip_address}: Unknown message topic")
 
         return parsed_message
+
+    def register_callback(self, callback: callable) -> None:
+        """Registers a callback function to be called when a message is received."""
+        if callback in self._callbacks:
+            logger.debug(f"{self._ip_address}: Callback already registered")
+            return
+
+        self._callbacks.append(callback)
+        logger.info(f"{self._ip_address}: Callback registered")
+
+    def _fire_callbacks(self) -> None:
+        """Calls all registered callbacks."""
+        for callback in self._callbacks:
+            callback(self)
 
     def _send_request(
         self,
