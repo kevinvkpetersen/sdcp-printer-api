@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import socket
@@ -106,7 +107,7 @@ class SDCPPrinter:
 
     # endregion
 
-    def start_listening(self, timeout: int = 1) -> None:
+    async def start_listening(self, timeout: int = 1) -> None:
         """Opens a persistent connection to the printer to listen for messages."""
         self._connection = websocket.WebSocketApp(
             self._websocket_url,
@@ -116,13 +117,15 @@ class SDCPPrinter:
         )
 
         logger.info(f"{self._ip_address}: Opening connection")
-        threading.Thread(target=self._connection.run_forever).start()
+        threading.Thread(
+            target=self._connection.run_forever, kwargs={"reconnect": 5}
+        ).start()
 
         start_time = time.time()
         while not self._is_connected:
             if timeout > 0 and time.time() - start_time > timeout:
                 raise TimeoutError("Connection timed out")
-            time.sleep(0.1)
+            await asyncio.sleep(0.1)
 
         logger.info(f"{self._ip_address}: Persistent connection established")
 
