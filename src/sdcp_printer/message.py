@@ -42,6 +42,7 @@ class SDCPMessage:
     def __init__(self, message_json: dict):
         """Constructor."""
         self.topic = message_json["Topic"].split("/")[1]
+        self._message_json = message_json
 
     @staticmethod
     def parse(message: str) -> SDCPMessage:
@@ -90,4 +91,8 @@ class SDCPStatusMessage(SDCPMessage):
     def __init__(self, message_json: dict):
         """Constructor."""
         super().__init__(message_json)
-        self.status = message_json["Status"]["CurrentStatus"]
+
+    @property
+    def current_status(self) -> str:
+        """Returns the CurrentStatus field of the message."""
+        return self._message_json["Status"]["CurrentStatus"]

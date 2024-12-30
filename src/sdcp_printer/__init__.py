@@ -34,7 +34,7 @@ class SDCPPrinter:
     _is_connected: bool = False
 
     _discovery_message: SDCPDiscoveryMessage | None = None
-    _status: SDCPStatusMessage | None = None
+    _status_message: SDCPStatusMessage | None = None
 
     def __init__(
         self,
@@ -48,31 +48,6 @@ class SDCPPrinter:
         self._ip_address = ip_address
         self._mainboard_id = mainboard_id
         self._discovery_message = discovery_message
-
-    @property
-    def uuid(self) -> str:
-        """ID of the printer."""
-        return self._uuid
-
-    @property
-    def ip_address(self) -> str:
-        """IP address of the printer."""
-        return self._ip_address
-
-    @property
-    def mainboard_id(self) -> str:
-        """Mainboard ID of the printer."""
-        return self._mainboard_id
-
-    @property
-    def _websocket_url(self) -> str:
-        """URL for the printer's websocket connection."""
-        return f"ws://{self.ip_address}:{PRINTER_PORT}/websocket"
-
-    @property
-    def status(self) -> dict:
-        """The printer's status details."""
-        return self._status
 
     @staticmethod
     def get_printer_info(ip_address: str, timeout: int = 1) -> SDCPPrinter:
@@ -101,6 +76,34 @@ class SDCPPrinter:
                 raise TimeoutError(f"Timed out waiting for response from {ip_address}")
             except json.JSONDecodeError:
                 raise ValueError(f"Invalid JSON from {ip_address}")
+
+    # region Properties
+    @property
+    def uuid(self) -> str:
+        """ID of the printer."""
+        return self._uuid
+
+    @property
+    def ip_address(self) -> str:
+        """IP address of the printer."""
+        return self._ip_address
+
+    @property
+    def mainboard_id(self) -> str:
+        """Mainboard ID of the printer."""
+        return self._mainboard_id
+
+    @property
+    def _websocket_url(self) -> str:
+        """URL for the printer's websocket connection."""
+        return f"ws://{self.ip_address}:{PRINTER_PORT}/websocket"
+
+    @property
+    def current_status(self) -> dict:
+        """The printer's status details."""
+        return self._status_message and self._status_message.current_status
+
+    # endregion
 
     def start_listening(self, timeout: int = 1) -> None:
         """Opens a persistent connection to the printer to listen for messages."""
@@ -152,14 +155,6 @@ class SDCPPrinter:
 
         return parsed_message
 
-    def refresh_status(self) -> None:
-        """Sends a request to the printer to report its status."""
-        logger.info(f"{self._ip_address}: Requesting status")
-
-        payload = SDCPStatusRequest.build(self)
-
-        self._send_request(payload)
-
     def _send_request(
         self,
         payload: dict,
@@ -195,7 +190,15 @@ class SDCPPrinter:
                     raise AssertionError(f"Request failed: {response.error_message}")
             return self._on_message(connection, connection.recv())
 
+    def refresh_status(self) -> None:
+        """Sends a request to the printer to report its status."""
+        logger.info(f"{self._ip_address}: Requesting status")
+
+        payload = SDCPStatusRequest.build(self)
+
+        self._send_request(payload)
+
     def _update_status(self, message: SDCPStatusMessage) -> None:
         """Updates the printer's status fields."""
-        self._status = message.status
-        logger.info(f"{self._ip_address}: Status updated: {self._status}")
+        self._status_message = message
+        logger.info(f"{self._ip_address}: Status updated: {self._status_message}")
