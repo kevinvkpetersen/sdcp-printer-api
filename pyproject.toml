@@ -23,3 +23,18 @@ Issues = "https://github.com/kevinvkpetersen/sdcp-printer-api/issues"
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
+
+[tool.pylint."MESSAGES CONTROL"]
+# Reasons disabled:
+# logging-fstring-interpolation - better readability with fstrings
+# unused-argument - generic callbacks and setup methods create a lot of warnings
+# arguments-differ - overloads with different arguments
+# expression-not-assigned - null-guard falsely triggers this
+# raise-missing-from - prefer to raise without from
+disable = """
+    logging-fstring-interpolation,
+    unused-argument,
+    arguments-differ,
+    expression-not-assigned,
+    raise-missing-from,
+"""

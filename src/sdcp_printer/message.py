@@ -88,10 +88,6 @@ class SDCPResponseMessage(SDCPMessage):
 class SDCPStatusMessage(SDCPMessage):
     """Message received with the status details of the printer."""
 
-    def __init__(self, message_json: dict):
-        """Constructor."""
-        super().__init__(message_json)
-
     @property
     def current_status(self) -> str:
         """Returns the CurrentStatus field of the message."""
