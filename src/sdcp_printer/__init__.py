@@ -26,7 +26,7 @@ DISCOVERY_PORT = 3000
 
 MESSAGE_ENCODING = "utf-8"
 
-logger = logging.getLogger(__package__)
+_logger = logging.getLogger(__package__)
 
 
 class SDCPPrinter:
@@ -55,7 +55,7 @@ class SDCPPrinter:
     @staticmethod
     def get_printer_info(ip_address: str, timeout: int = 1) -> SDCPPrinter:
         """Gets information about a printer given its IP address."""
-        logger.info(f"Getting printer info for {ip_address}")
+        _logger.info(f"Getting printer info for {ip_address}")
 
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.settimeout(timeout)
@@ -63,7 +63,7 @@ class SDCPPrinter:
 
             try:
                 device_response = sock.recv(8192)
-                logger.debug(
+                _logger.debug(
                     f"Reply from {ip_address}: {device_response.decode(MESSAGE_ENCODING)}"
                 )
                 discovery_message = SDCPDiscoveryMessage.parse(
@@ -135,7 +135,7 @@ class SDCPPrinter:
             on_message=self._on_message,
         )
 
-        logger.info(f"{self._ip_address}: Opening connection")
+        _logger.info(f"{self._ip_address}: Opening connection")
         threading.Thread(
             target=self._connection.run_forever, kwargs={"reconnect": 5}
         ).start()
@@ -146,7 +146,7 @@ class SDCPPrinter:
                 raise TimeoutError("Connection timed out")
             await asyncio.sleep(0.1)
 
-        logger.info(f"{self._ip_address}: Persistent connection established")
+        _logger.info(f"{self._ip_address}: Persistent connection established")
 
     def stop_listening(self) -> None:
         """Closes the connection to the printer."""
@@ -155,17 +155,17 @@ class SDCPPrinter:
 
     def _on_open(self, ws) -> None:
         """Callback for when the connection is opened."""
-        logger.info(f"{self._ip_address}: Connection opened")
+        _logger.info(f"{self._ip_address}: Connection opened")
         self._is_connected = True
 
     def _on_close(self, ws, close_status_code, close_msg) -> None:
         """Callback for when the connection is closed."""
-        logger.info(f"{self._ip_address}: Connection closed")
+        _logger.info(f"{self._ip_address}: Connection closed")
         self._is_connected = False
 
     def _on_message(self, ws, message: str) -> SDCPMessage:
         """Callback for when a message is received."""
-        logger.debug(f"{self._ip_address}: Message received: {message}")
+        _logger.debug(f"{self._ip_address}: Message received: {message}")
         parsed_message = SDCPMessage.parse(message)
 
         match parsed_message.topic:
@@ -175,18 +175,18 @@ class SDCPPrinter:
                 self._update_status(parsed_message)
                 self._fire_callbacks()
             case _:
-                logger.warning(f"{self._ip_address}: Unknown message topic")
+                _logger.warning(f"{self._ip_address}: Unknown message topic")
 
         return parsed_message
 
     def register_callback(self, callback: callable) -> None:
         """Registers a callback function to be called when a message is received."""
         if callback in self._callbacks:
-            logger.debug(f"{self._ip_address}: Callback already registered")
+            _logger.debug(f"{self._ip_address}: Callback already registered")
             return
 
         self._callbacks.append(callback)
-        logger.info(f"{self._ip_address}: Callback registered")
+        _logger.info(f"{self._ip_address}: Callback registered")
 
     def _fire_callbacks(self) -> None:
         """Calls all registered callbacks."""
@@ -215,7 +215,7 @@ class SDCPPrinter:
                         expect_response=expect_response,
                     )
 
-        logger.debug(f"{self._ip_address}: Sending request with payload: {payload}")
+        _logger.debug(f"{self._ip_address}: Sending request with payload: {payload}")
         connection.send(json.dumps(payload))
 
         # TODO: Add timeout
@@ -230,7 +230,7 @@ class SDCPPrinter:
 
     def refresh_status(self) -> None:
         """Sends a request to the printer to report its status."""
-        logger.info(f"{self._ip_address}: Requesting status")
+        _logger.info(f"{self._ip_address}: Requesting status")
 
         payload = SDCPStatusRequest.build(self)
 
@@ -239,4 +239,4 @@ class SDCPPrinter:
     def _update_status(self, message: SDCPStatusMessage) -> None:
         """Updates the printer's status fields."""
         self._status_message = message
-        logger.info(f"{self._ip_address}: Status updated: {self._status_message}")
+        _logger.info(f"{self._ip_address}: Status updated: {self._status_message}")
