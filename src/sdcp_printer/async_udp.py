@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 import asyncio_dgram
 
 
@@ -10,14 +12,18 @@ class AsyncUDPConnection:
 
     _connection: asyncio_dgram.DatagramClient
 
-    def __init__(self, host: str, port: int | str):
+    def __init__(self, host: str, port: int | str, timeout: int = None):
         """Constructor."""
         self.host = host
         self.port = port
+        self.timeout = timeout
 
     async def __aenter__(self):
         """Open the connection."""
-        self._connection = await asyncio_dgram.connect((self.host, self.port))
+        self._connection = await asyncio.wait_for(
+            asyncio_dgram.connect((self.host, self.port)),
+            timeout=self.timeout,
+        )
 
         return self
 
@@ -25,11 +31,11 @@ class AsyncUDPConnection:
         """Close the connection."""
         self._connection.close()
 
-    async def send(self, data: bytes):
+    async def send(self, data: bytes, timeout: int = None):
         """Send data to the connection."""
-        await self._connection.send(data)
+        await asyncio.wait_for(self._connection.send(data), timeout=timeout)
 
-    async def receive(self, buffer_size: int = 8192) -> bytes:
+    async def receive(self, timeout: int = None) -> bytes:
         """Receive data from the connection."""
-        data, _ = await self._connection.recv()
+        data, _ = await asyncio.wait_for(self._connection.recv(), timeout=timeout)
         return data
