@@ -10,6 +10,7 @@ import time
 from contextlib import closing
 
 import websocket
+from websockets.asyncio.client import ClientConnection, connect
 
 from .async_udp import AsyncUDPConnection
 from .message import (
@@ -31,12 +32,12 @@ _logger = logging.getLogger(__package__)
 class SDCPPrinter:
     """Class to represent a printer discovered on the network."""
 
-    _connection: websocket.WebSocketApp | None = None
+    _connection: ClientConnection = None
     _is_connected: bool = False
     _callbacks: list[callable] = []
 
-    _discovery_message: SDCPDiscoveryMessage | None = None
-    _status_message: SDCPStatusMessage | None = None
+    _discovery_message: SDCPDiscoveryMessage = None
+    _status_message: SDCPStatusMessage = None
 
     def __init__(
         self,
@@ -115,44 +116,54 @@ class SDCPPrinter:
 
     # endregion
 
-    async def start_listening(self, timeout: int = 1) -> None:
+    # TODO: Timeout
+    def start_listening(self) -> None:
         """Opens a persistent connection to the printer to listen for messages."""
-        self._connection = websocket.WebSocketApp(
-            self._websocket_url,
-            on_open=self._on_open,
-            on_close=self._on_close,
-            on_message=self._on_message,
-        )
+        asyncio.create_task(self.start_listening_async())
+        asyncio.run(self.wait_for_connection_async())
 
+    # TODO: Timeout
+    async def start_listening_async(self) -> None:
+        """Opens a persistent connection to the printer to listen for messages."""
         _logger.info(f"{self._ip_address}: Opening connection")
-        threading.Thread(
-            target=self._connection.run_forever, kwargs={"reconnect": 5}
-        ).start()
 
-        start_time = time.time()
+        async with connect(self._websocket_url) as ws:
+            self._connection = ws
+            # TODO: Add connection recvovery
+            self._on_open()
+
+            while True:
+                message = await self._connection.recv()
+                self._on_message(message)
+
+        self._on_close()
+
+    # TODO: Timeout; Sleep Interval
+    async def wait_for_connection_async(self) -> None:
+        """Waits for the connection to be established."""
         while not self._is_connected:
-            if timeout > 0 and time.time() - start_time > timeout:
-                raise TimeoutError("Connection timed out")
-            await asyncio.sleep(0.1)
-
-        _logger.info(f"{self._ip_address}: Persistent connection established")
+            await asyncio.sleep(0)
 
     def stop_listening(self) -> None:
         """Closes the connection to the printer."""
-        # TODO: Make sure this is more reliably called. Ideally in __exit__ using the with statement.
-        self._connection and self._connection.close()
+        asyncio.run(self.stop_listening_async())
 
-    def _on_open(self, ws) -> None:
+    async def stop_listening_async(self) -> None:
+        """Closes the connection to the printer."""
+        # TODO: Make sure this is more reliably called. Ideally in __exit__ using the with statement.
+        self._connection and await self._connection.close()
+
+    def _on_open(self) -> None:
         """Callback for when the connection is opened."""
-        _logger.info(f"{self._ip_address}: Connection opened")
+        _logger.info(f"{self._ip_address}: Connection established")
         self._is_connected = True
 
-    def _on_close(self, ws, close_status_code, close_msg) -> None:
+    def _on_close(self) -> None:
         """Callback for when the connection is closed."""
         _logger.info(f"{self._ip_address}: Connection closed")
         self._is_connected = False
 
-    def _on_message(self, ws, message: str) -> SDCPMessage:
+    def _on_message(self, message: str) -> SDCPMessage:
         """Callback for when a message is received."""
         _logger.debug(f"{self._ip_address}: Message received: {message}")
         parsed_message = SDCPMessage.parse(message)
