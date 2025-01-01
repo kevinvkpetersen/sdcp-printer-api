@@ -243,13 +243,19 @@ class SDCPPrinter:
                     raise AssertionError(f"Request failed: {response.error_message}")
             return self._on_message(await connection.recv())
 
+    # TODO: Add timeout
     def refresh_status(self) -> None:
+        """Sends a request to the printer to report its status."""
+        asyncio.run(self.refresh_status_async())
+
+    # TODO: Add timeout
+    async def refresh_status_async(self) -> None:
         """Sends a request to the printer to report its status."""
         _logger.info(f"{self._ip_address}: Requesting status")
 
         payload = SDCPStatusRequest.build(self)
 
-        self._send_request(payload)
+        await self._send_request_async(payload)
 
     def _update_status(self, message: SDCPStatusMessage) -> None:
         """Updates the printer's status fields."""
