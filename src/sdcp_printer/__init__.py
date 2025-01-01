@@ -193,6 +193,7 @@ class SDCPPrinter:
         for callback in self._callbacks:
             callback(self)
 
+    # TODO: Add timeout
     def _send_request(
         self,
         payload: dict,
@@ -201,14 +202,29 @@ class SDCPPrinter:
         expect_response: bool = True,
     ) -> SDCPMessage:
         """Sends a request to the printer."""
+        asyncio.run(
+            self._send_request_async(
+                payload, connection, receive_message, expect_response
+            )
+        )
+
+    # TODO: Add timeout
+    async def _send_request_async(
+        self,
+        payload: dict,
+        connection: ClientConnection = None,
+        receive_message: bool = True,
+        expect_response: bool = True,
+    ) -> SDCPMessage:
+        """Sends a request to the printer."""
         if connection is None:
             if self._connection is not None and self._is_connected:
-                return self._send_request(
+                return await self._send_request_async(
                     payload, self._connection, receive_message=False
                 )
             else:
-                with closing(websocket.create_connection(self._websocket_url)) as ws:
-                    return self._send_request(
+                async with connect(self._websocket_url) as ws:
+                    return await self._send_request_async(
                         payload,
                         ws,
                         receive_message=True,
@@ -216,17 +232,16 @@ class SDCPPrinter:
                     )
 
         _logger.debug(f"{self._ip_address}: Sending request with payload: {payload}")
-        connection.send(json.dumps(payload))
+        await connection.send(json.dumps(payload))
 
-        # TODO: Add timeout
         if receive_message:
             if expect_response:
                 response: SDCPResponseMessage = self._on_message(
-                    connection, connection.recv()
+                    await connection.recv()
                 )
                 if not response.is_success:
                     raise AssertionError(f"Request failed: {response.error_message}")
-            return self._on_message(connection, connection.recv())
+            return self._on_message(await connection.recv())
 
     def refresh_status(self) -> None:
         """Sends a request to the printer to report its status."""
