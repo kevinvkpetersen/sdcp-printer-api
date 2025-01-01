@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
-import socket
 import threading
 import time
 from contextlib import closing
 
 import websocket
+from websockets.asyncio.client import ClientConnection, connect
 
+from .async_udp import AsyncUDPConnection
 from .message import (
     SDCPDiscoveryMessage,
     SDCPMessage,
@@ -30,12 +32,12 @@ _logger = logging.getLogger(__package__)
 class SDCPPrinter:
     """Class to represent a printer discovered on the network."""
 
-    _connection: websocket.WebSocketApp | None = None
+    _connection: ClientConnection = None
     _is_connected: bool = False
     _callbacks: list[callable] = []
 
-    _discovery_message: SDCPDiscoveryMessage | None = None
-    _status_message: SDCPStatusMessage | None = None
+    _discovery_message: SDCPDiscoveryMessage = None
+    _status_message: SDCPStatusMessage = None
 
     def __init__(
         self,
@@ -51,32 +53,40 @@ class SDCPPrinter:
         self._discovery_message = discovery_message
 
     @staticmethod
-    def get_printer_info(ip_address: str, timeout: int = 1) -> SDCPPrinter:
+    def get_printer(ip_address: str, timeout: int = 1) -> SDCPPrinter:
+        """Gets information about a printer given its IP address."""
+
+        return asyncio.run(SDCPPrinter.get_printer_async(ip_address, timeout))
+
+    @staticmethod
+    async def get_printer_async(ip_address: str, timeout: int = None) -> SDCPPrinter:
         """Gets information about a printer given its IP address."""
         _logger.info(f"Getting printer info for {ip_address}")
 
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-            sock.settimeout(timeout)
-            sock.sendto(b"M99999", (ip_address, DISCOVERY_PORT))
+        try:
+            async with AsyncUDPConnection(ip_address, DISCOVERY_PORT, timeout) as conn:
+                await conn.send(b"M99999", timeout)
 
-            try:
-                device_response = sock.recv(8192)
+                device_response = await conn.receive(timeout)
                 _logger.debug(
                     f"Reply from {ip_address}: {device_response.decode(MESSAGE_ENCODING)}"
                 )
                 discovery_message = SDCPDiscoveryMessage.parse(
                     device_response.decode(MESSAGE_ENCODING)
                 )
+
                 return SDCPPrinter(
                     discovery_message.id,
                     discovery_message.ip_address,
                     discovery_message.mainboard_id,
                     discovery_message,
                 )
-            except socket.timeout:
-                raise TimeoutError(f"Timed out waiting for response from {ip_address}")
-            except json.JSONDecodeError:
-                raise ValueError(f"Invalid JSON from {ip_address}")
+        except TimeoutError as e:
+            raise TimeoutError(
+                f"Timed out waiting for response from {ip_address}"
+            ) from e
+        except AttributeError as e:
+            raise AttributeError(f"Invalid JSON from {ip_address}") from e
 
     # region Properties
     @property
@@ -106,44 +116,54 @@ class SDCPPrinter:
 
     # endregion
 
-    def start_listening(self, timeout: int = 1) -> None:
+    # TODO: Timeout
+    def start_listening(self) -> None:
         """Opens a persistent connection to the printer to listen for messages."""
-        self._connection = websocket.WebSocketApp(
-            self._websocket_url,
-            on_open=self._on_open,
-            on_close=self._on_close,
-            on_message=self._on_message,
-        )
+        asyncio.create_task(self.start_listening_async())
+        asyncio.run(self.wait_for_connection_async())
 
+    # TODO: Timeout
+    async def start_listening_async(self) -> None:
+        """Opens a persistent connection to the printer to listen for messages."""
         _logger.info(f"{self._ip_address}: Opening connection")
-        threading.Thread(
-            target=self._connection.run_forever, kwargs={"reconnect": 5}
-        ).start()
 
-        start_time = time.time()
+        async with connect(self._websocket_url) as ws:
+            self._connection = ws
+            # TODO: Add connection recvovery
+            self._on_open()
+
+            while True:
+                message = await self._connection.recv()
+                self._on_message(message)
+
+        self._on_close()
+
+    # TODO: Timeout; Sleep Interval
+    async def wait_for_connection_async(self) -> None:
+        """Waits for the connection to be established."""
         while not self._is_connected:
-            if timeout > 0 and time.time() - start_time > timeout:
-                raise TimeoutError("Connection timed out")
-            time.sleep(0.1)
-
-        _logger.info(f"{self._ip_address}: Persistent connection established")
+            await asyncio.sleep(0)
 
     def stop_listening(self) -> None:
         """Closes the connection to the printer."""
-        # TODO: Make sure this is more reliably called. Ideally in __exit__ using the with statement.
-        self._connection and self._connection.close()
+        asyncio.run(self.stop_listening_async())
 
-    def _on_open(self, ws) -> None:
+    async def stop_listening_async(self) -> None:
+        """Closes the connection to the printer."""
+        # TODO: Make sure this is more reliably called. Ideally in __exit__ using the with statement.
+        self._connection and await self._connection.close()
+
+    def _on_open(self) -> None:
         """Callback for when the connection is opened."""
-        _logger.info(f"{self._ip_address}: Connection opened")
+        _logger.info(f"{self._ip_address}: Connection established")
         self._is_connected = True
 
-    def _on_close(self, ws, close_status_code, close_msg) -> None:
+    def _on_close(self) -> None:
         """Callback for when the connection is closed."""
         _logger.info(f"{self._ip_address}: Connection closed")
         self._is_connected = False
 
-    def _on_message(self, ws, message: str) -> SDCPMessage:
+    def _on_message(self, message: str) -> SDCPMessage:
         """Callback for when a message is received."""
         _logger.debug(f"{self._ip_address}: Message received: {message}")
         parsed_message = SDCPMessage.parse(message)
@@ -173,6 +193,7 @@ class SDCPPrinter:
         for callback in self._callbacks:
             callback(self)
 
+    # TODO: Add timeout
     def _send_request(
         self,
         payload: dict,
@@ -181,14 +202,29 @@ class SDCPPrinter:
         expect_response: bool = True,
     ) -> SDCPMessage:
         """Sends a request to the printer."""
+        asyncio.run(
+            self._send_request_async(
+                payload, connection, receive_message, expect_response
+            )
+        )
+
+    # TODO: Add timeout
+    async def _send_request_async(
+        self,
+        payload: dict,
+        connection: ClientConnection = None,
+        receive_message: bool = True,
+        expect_response: bool = True,
+    ) -> SDCPMessage:
+        """Sends a request to the printer."""
         if connection is None:
             if self._connection is not None and self._is_connected:
-                return self._send_request(
+                return await self._send_request_async(
                     payload, self._connection, receive_message=False
                 )
             else:
-                with closing(websocket.create_connection(self._websocket_url)) as ws:
-                    return self._send_request(
+                async with connect(self._websocket_url) as ws:
+                    return await self._send_request_async(
                         payload,
                         ws,
                         receive_message=True,
@@ -196,25 +232,30 @@ class SDCPPrinter:
                     )
 
         _logger.debug(f"{self._ip_address}: Sending request with payload: {payload}")
-        connection.send(json.dumps(payload))
+        await connection.send(json.dumps(payload))
 
-        # TODO: Add timeout
         if receive_message:
             if expect_response:
                 response: SDCPResponseMessage = self._on_message(
-                    connection, connection.recv()
+                    await connection.recv()
                 )
                 if not response.is_success:
                     raise AssertionError(f"Request failed: {response.error_message}")
-            return self._on_message(connection, connection.recv())
+            return self._on_message(await connection.recv())
 
+    # TODO: Add timeout
     def refresh_status(self) -> None:
+        """Sends a request to the printer to report its status."""
+        asyncio.run(self.refresh_status_async())
+
+    # TODO: Add timeout
+    async def refresh_status_async(self) -> None:
         """Sends a request to the printer to report its status."""
         _logger.info(f"{self._ip_address}: Requesting status")
 
         payload = SDCPStatusRequest.build(self)
 
-        self._send_request(payload)
+        await self._send_request_async(payload)
 
     def _update_status(self, message: SDCPStatusMessage) -> None:
         """Updates the printer's status fields."""
