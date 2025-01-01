@@ -10,6 +10,7 @@ import websocket
 from websockets.asyncio.client import ClientConnection, connect
 
 from .async_udp import AsyncUDPConnection
+from .enum import SDCPStatus
 from .message import (
     SDCPDiscoveryMessage,
     SDCPMessage,
@@ -107,7 +108,7 @@ class SDCPPrinter:
         return f"ws://{self.ip_address}:{PRINTER_PORT}/websocket"
 
     @property
-    def current_status(self) -> dict:
+    def current_status(self) -> list[SDCPStatus]:
         """The printer's status details."""
         return self._status_message and self._status_message.current_status
 

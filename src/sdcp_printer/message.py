@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import logging
 
+from .enum import SDCPStatus
+
 _logger = logging.getLogger(__name__)
 
 
@@ -88,7 +90,16 @@ class SDCPResponseMessage(SDCPMessage):
 class SDCPStatusMessage(SDCPMessage):
     """Message received with the status details of the printer."""
 
+    _current_status: list[SDCPStatus] = None
+
+    def __init__(self, message_json: dict):
+        """Constructor."""
+        super().__init__(message_json)
+        self._current_status = [
+            SDCPStatus(value) for value in message_json["Status"]["CurrentStatus"]
+        ]
+
     @property
-    def current_status(self) -> str:
+    def current_status(self) -> list[SDCPStatus]:
         """Returns the CurrentStatus field of the message."""
-        return self._message_json["Status"]["CurrentStatus"]
+        return self._current_status
