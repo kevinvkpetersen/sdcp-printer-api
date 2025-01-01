@@ -5,9 +5,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import threading
-import time
-from contextlib import closing
 
 import websocket
 from websockets.asyncio.client import ClientConnection, connect
