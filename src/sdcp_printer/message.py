@@ -16,6 +16,13 @@ class SDCPDiscoveryMessage:
     def __init__(self, message_json: dict):
         self._message_json = message_json
 
+    @staticmethod
+    def parse(message: str) -> SDCPDiscoveryMessage:
+        """Parses a discovery message from the printer."""
+        _logger.debug("Discovery message: %s", message)
+        return SDCPDiscoveryMessage(json.loads(message))
+
+    # Required properties
     @property
     def id(self) -> str:
         """Returns the ID of the printer."""
@@ -31,11 +38,26 @@ class SDCPDiscoveryMessage:
         """Returns the mainboard ID of the printer."""
         return self._message_json["Data"]["MainboardID"]
 
-    @staticmethod
-    def parse(message: str) -> SDCPDiscoveryMessage:
-        """Parses a discovery message from the printer."""
-        _logger.debug("Discovery message: %s", message)
-        return SDCPDiscoveryMessage(json.loads(message))
+    # Optional properties
+    @property
+    def name(self) -> str:
+        """Returns the name of the printer."""
+        return self._message_json.get("Data", {}).get("Name")
+
+    @property
+    def manufacturer(self) -> str:
+        """Returns the manufacturer of the printer."""
+        return self._message_json.get("Data", {}).get("BrandName")
+
+    @property
+    def model(self) -> str:
+        """Returns the model of the printer."""
+        return self._message_json.get("Data", {}).get("MachineName")
+
+    @property
+    def firmware_version(self) -> str:
+        """Returns the firmware version of the printer."""
+        return self._message_json.get("Data", {}).get("FirmwareVersion")
 
 
 class SDCPMessage:

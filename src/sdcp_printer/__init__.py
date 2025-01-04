@@ -113,6 +113,26 @@ class SDCPPrinter:
         return f"ws://{self.ip_address}:{PRINTER_PORT}/websocket"
 
     @property
+    def name(self) -> str:
+        """The printer's name."""
+        return self._discovery_message and self._discovery_message.name
+
+    @property
+    def manufacturer(self) -> str:
+        """The printer's manufacturer."""
+        return self._discovery_message and self._discovery_message.manufacturer
+
+    @property
+    def model(self) -> str:
+        """The printer's model."""
+        return self._discovery_message and self._discovery_message.model
+
+    @property
+    def firmware_version(self) -> str:
+        """The printer's firmware version."""
+        return self._discovery_message and self._discovery_message.firmware_version
+
+    @property
     def current_status(self) -> list[SDCPStatus]:
         """The printer's status details."""
         return self._status_message and self._status_message.current_status
