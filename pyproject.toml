@@ -6,7 +6,7 @@ authors = [
 ]
 description = "API to communicate with 3D printers using the SDCP protocol."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 dependencies = [
     "asyncio-dgram",
     "websockets",
