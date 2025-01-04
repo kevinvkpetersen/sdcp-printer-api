@@ -7,6 +7,7 @@ import json
 import logging
 
 from websockets.asyncio.client import ClientConnection, connect
+from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
 
 from .async_udp import AsyncUDPConnection
 from .enum import SDCPStatus
@@ -129,14 +130,19 @@ class SDCPPrinter:
         """Opens a persistent connection to the printer to listen for messages."""
         _logger.info(f"{self._ip_address}: Opening connection")
 
-        async with connect(self._websocket_url) as ws:
-            self._connection = ws
-            # TODO: Add connection recvovery
-            self._on_open()
+        async for ws in connect(self._websocket_url):
+            try:
+                self._connection = ws
+                self._on_open()
 
-            while True:
-                message = await self._connection.recv()
-                self._on_message(message)
+                while True:
+                    message = await self._connection.recv()
+                    self._on_message(message)
+            except ConnectionClosedError:
+                _logger.warning(f"{self._ip_address}: Connection lost, retrying")
+                self._is_connected = False
+            except ConnectionClosedOK:
+                break
 
         self._on_close()
 
