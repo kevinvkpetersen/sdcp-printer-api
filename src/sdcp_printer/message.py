@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 
-from .enum import SDCPAck, SDCPStatus
+from .enum import SDCPAck, SDCPCommand, SDCPMachineStatus
 
 _logger = logging.getLogger(__name__)
 
@@ -78,7 +78,7 @@ class SDCPMessage:
         _logger.debug(f"Topic: {topic}")
         match topic:
             case "response":
-                return SDCPResponseMessage(message_json)
+                return SDCPResponseMessage.parse(message_json)
             case "status":
                 return SDCPStatusMessage(message_json)
             case _:
@@ -93,9 +93,25 @@ class SDCPResponseMessage(SDCPMessage):
         """Constructor."""
         super().__init__(message_json)
         try:
-            self.ack = SDCPAck(message_json["Data"]["Data"]["Ack"])
+            ack_value = message_json["Data"]["Data"]["Ack"]
+            self.ack = SDCPAck(ack_value)
         except ValueError:
+            _logger.warning(f"Unknown Ack value: {ack_value}")
             self.ack = SDCPAck.UNKNOWN
+
+    @staticmethod
+    def parse(message_json: dict) -> SDCPResponseMessage:
+        """Parses a response message from the printer."""
+        try:
+            cmd_value = message_json["Data"]["Cmd"]
+            command = SDCPCommand(cmd_value)
+        except ValueError:
+            _logger.warning(f"Unknown command: {cmd_value}")
+            command = SDCPCommand.UNKNOWN
+
+        match command:
+            case _:
+                return SDCPResponseMessage(message_json)
 
     @property
     def is_success(self) -> bool:
@@ -115,16 +131,17 @@ class SDCPResponseMessage(SDCPMessage):
 class SDCPStatusMessage(SDCPMessage):
     """Message received with the status details of the printer."""
 
-    _current_status: list[SDCPStatus] = None
+    _current_status: list[SDCPMachineStatus] = None
 
     def __init__(self, message_json: dict):
         """Constructor."""
         super().__init__(message_json)
         self._current_status = [
-            SDCPStatus(value) for value in message_json["Status"]["CurrentStatus"]
+            SDCPMachineStatus(value)
+            for value in message_json["Status"]["CurrentStatus"]
         ]
 
     @property
-    def current_status(self) -> list[SDCPStatus]:
+    def current_status(self) -> list[SDCPMachineStatus]:
         """Returns the CurrentStatus field of the message."""
         return self._current_status

@@ -10,7 +10,7 @@ from websockets.asyncio.client import ClientConnection, connect
 from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
 
 from .async_udp import AsyncUDPConnection
-from .enum import SDCPFrom, SDCPStatus
+from .enum import SDCPFrom, SDCPMachineStatus
 from .message import (
     SDCPDiscoveryMessage,
     SDCPMessage,
@@ -133,7 +133,7 @@ class SDCPPrinter:
         return self._discovery_message and self._discovery_message.firmware_version
 
     @property
-    def current_status(self) -> list[SDCPStatus]:
+    def current_status(self) -> list[SDCPMachineStatus]:
         """The printer's curent status."""
         return self._status_message and self._status_message.current_status
 
@@ -303,7 +303,7 @@ class SDCPPrinter:
 
         await self._send_request_async(payload, timeout=timeout)
 
-    def _update_status(self, message: SDCPStatusMessage) -> None:
+    def _update_status(self, status_message: SDCPStatusMessage) -> None:
         """Updates the printer's status fields."""
-        self._status_message = message
+        self._status_message = status_message
         _logger.info(f"{self._ip_address}: Status updated: {self._status_message}")
