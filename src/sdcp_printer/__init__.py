@@ -10,7 +10,7 @@ from websockets.asyncio.client import ClientConnection, connect
 from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
 
 from .async_udp import AsyncUDPConnection
-from .enum import SDCPStatus
+from .enum import SDCPFrom, SDCPStatus
 from .message import (
     SDCPDiscoveryMessage,
     SDCPMessage,
@@ -134,7 +134,7 @@ class SDCPPrinter:
 
     @property
     def current_status(self) -> list[SDCPStatus]:
-        """The printer's status details."""
+        """The printer's curent status."""
         return self._status_message and self._status_message.current_status
 
     # endregion
@@ -283,15 +283,23 @@ class SDCPPrinter:
                         )
                 return self._on_message(await connection.recv())
 
-    def refresh_status(self, timeout: float = DEFAULT_TIMEOUT) -> None:
+    def refresh_status(
+        self,
+        timeout: float = DEFAULT_TIMEOUT,
+        sdcp_from: SDCPFrom = SDCPFrom.PC,
+    ) -> None:
         """Sends a request to the printer to report its status."""
-        asyncio.run(self.refresh_status_async(timeout))
+        asyncio.run(self.refresh_status_async(timeout, sdcp_from))
 
-    async def refresh_status_async(self, timeout: float = None) -> None:
+    async def refresh_status_async(
+        self,
+        timeout: float = None,
+        sdcp_from: SDCPFrom = SDCPFrom.PC,
+    ) -> None:
         """Sends a request to the printer to report its status."""
         _logger.info(f"{self._ip_address}: Requesting status")
 
-        payload = SDCPStatusRequest.build(self)
+        payload = SDCPStatusRequest.build(self, sdcp_from)
 
         await self._send_request_async(payload, timeout=timeout)
 

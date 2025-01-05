@@ -13,6 +13,17 @@ class SDCPFrom(Enum):
     """Values for the From field."""
 
     PC = 0  # Local PC Software Local Area Network
+    WEB_PC = 1  # PC Software via WEB
+    WEB = 2  # Web Client
+    APP = 3  # App
+    SERVER = 4  # Server
+
+
+class SDCPAck(Enum):
+    """Values for the Ack field."""
+
+    UNKNOWN = None  # Unknown error
+    SUCCESS = 0  # Success
 
 
 class SDCPStatus(Enum):

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 
-from .enum import SDCPStatus
+from .enum import SDCPAck, SDCPStatus
 
 _logger = logging.getLogger(__name__)
 
@@ -92,21 +92,24 @@ class SDCPResponseMessage(SDCPMessage):
     def __init__(self, message_json: dict):
         """Constructor."""
         super().__init__(message_json)
-        self.ack = message_json["Data"]["Data"]["Ack"]
+        try:
+            self.ack = SDCPAck(message_json["Data"]["Data"]["Ack"])
+        except ValueError:
+            self.ack = SDCPAck.UNKNOWN
 
     @property
     def is_success(self) -> bool:
         """Returns True if the request was successful."""
-        return self.ack == 0
+        return self.ack == SDCPAck.SUCCESS
 
     @property
     def error_message(self) -> str | None:
         """Returns the error message if the request was unsuccessful."""
         match self.ack:
-            case 0:
+            case SDCPAck.SUCCESS:
                 return None
             case _:
-                return f"Unknown error for ACK value: {self.ack}"
+                return f"Unknown error for ACK value: {self._message_json['Data']['Data']['Ack']}"
 
 
 class SDCPStatusMessage(SDCPMessage):
