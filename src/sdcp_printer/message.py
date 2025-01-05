@@ -136,10 +136,12 @@ class SDCPStatusMessage(SDCPMessage):
     def __init__(self, message_json: dict):
         """Constructor."""
         super().__init__(message_json)
-        self._current_status = [
-            SDCPMachineStatus(value)
-            for value in message_json["Status"]["CurrentStatus"]
-        ]
+        self._current_status = []
+        for status_value in message_json["Status"]["CurrentStatus"]:
+            try:
+                self._current_status.append(SDCPMachineStatus(status_value))
+            except ValueError:
+                _logger.warning(f"Unknown status value: {status_value}")
 
     @property
     def current_status(self) -> list[SDCPMachineStatus]:
