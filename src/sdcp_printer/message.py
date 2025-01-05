@@ -145,3 +145,8 @@ class SDCPStatusMessage(SDCPMessage):
     def current_status(self) -> list[SDCPMachineStatus]:
         """Returns the CurrentStatus field of the message."""
         return self._current_status
+
+    @property
+    def uv_led_temperature(self) -> float:
+        """Returns the UV LED temperature in degrees Celsius."""
+        return self._message_json["Status"].get("TempOfUVLED")
