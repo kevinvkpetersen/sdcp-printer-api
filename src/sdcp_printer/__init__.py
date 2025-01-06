@@ -10,7 +10,7 @@ from websockets.asyncio.client import ClientConnection, connect
 from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
 
 from .async_udp import AsyncUDPConnection
-from .enum import SDCPFrom, SDCPMachineStatus
+from .enum import SDCPFrom, SDCPMachineStatus, SDCPPrintError, SDCPPrintStatus
 from .message import (
     SDCPDiscoveryMessage,
     SDCPMessage,
@@ -151,6 +151,41 @@ class SDCPPrinter:
     def film_usage(self) -> int:
         """The number of layers printed on the current film."""
         return self._status_message and self._status_message.film_usage
+
+    @property
+    def print_status(self) -> SDCPPrintStatus:
+        """Returns the status of the print job."""
+        return self._status_message and self._status_message.print_status
+
+    @property
+    def print_error(self) -> SDCPPrintError:
+        """Returns the ErrorNumber field of the PrintInfo section."""
+        return self._status_message and self._status_message.print_error
+
+    @property
+    def current_layer(self) -> int:
+        """Returns the current layer number."""
+        return self._status_message and self._status_message.current_layer
+
+    @property
+    def total_layers(self) -> int:
+        """Returns the total number of layers in this print job."""
+        return self._status_message and self._status_message.total_layers
+
+    @property
+    def current_time(self) -> int:
+        """Returns the current print time in milliseconds."""
+        return self._status_message and self._status_message.current_time
+
+    @property
+    def total_time(self) -> int:
+        """Returns the total print time in milliseconds."""
+        return self._status_message and self._status_message.total_time
+
+    @property
+    def file_name(self) -> str:
+        """Returns the name of the file being printed."""
+        return self._status_message and self._status_message.file_name
 
     # endregion
 

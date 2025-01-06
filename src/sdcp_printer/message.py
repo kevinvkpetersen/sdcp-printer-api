@@ -5,7 +5,13 @@ from __future__ import annotations
 import json
 import logging
 
-from .enum import SDCPAck, SDCPCommand, SDCPMachineStatus
+from .enum import (
+    SDCPAck,
+    SDCPCommand,
+    SDCPMachineStatus,
+    SDCPPrintError,
+    SDCPPrintStatus,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -137,6 +143,7 @@ class SDCPStatusMessage(SDCPMessage):
         """Constructor."""
         super().__init__(message_json)
         self._status_section: dict = message_json["Status"]
+        self._print_info: dict = self._status_section.get("PrintInfo", {})
 
         self._current_status = []
         for status_value in self._status_section["CurrentStatus"]:
@@ -144,6 +151,20 @@ class SDCPStatusMessage(SDCPMessage):
                 self._current_status.append(SDCPMachineStatus(status_value))
             except ValueError:
                 _logger.warning(f"Unknown status value: {status_value}")
+
+        try:
+            print_status_value = self._print_info.get("Status")
+            self._print_status = SDCPPrintStatus(print_status_value)
+        except ValueError:
+            _logger.warning(f"Unknown print status value: {print_status_value}")
+            self._print_status = SDCPPrintStatus.UNKNOWN
+
+        try:
+            print_error_value = self._print_info.get("ErrorNumber")
+            self._print_error = SDCPPrintError(print_error_value)
+        except ValueError:
+            _logger.warning(f"Unknown print error value: {print_error_value}")
+            self._print_error = SDCPPrintError.UNKNOWN
 
     @property
     def current_status(self) -> list[SDCPMachineStatus]:
@@ -164,3 +185,38 @@ class SDCPStatusMessage(SDCPMessage):
     def film_usage(self) -> int:
         """Returns the number of layers printed on the current film."""
         return self._status_section.get("ReleaseFilm")
+
+    @property
+    def print_status(self) -> SDCPPrintStatus:
+        """Returns the status of the print job."""
+        return self._print_status
+
+    @property
+    def print_error(self) -> SDCPPrintError:
+        """Returns the ErrorNumber field of the PrintInfo section."""
+        return self._print_error
+
+    @property
+    def current_layer(self) -> int:
+        """Returns the current layer number."""
+        return self._print_info.get("CurrentLayer")
+
+    @property
+    def total_layers(self) -> int:
+        """Returns the total number of layers in this print job."""
+        return self._print_info.get("TotalLayer")
+
+    @property
+    def current_time(self) -> int:
+        """Returns the current print time in milliseconds."""
+        return self._print_info.get("CurrentTicks")
+
+    @property
+    def total_time(self) -> int:
+        """Returns the total print time in milliseconds."""
+        return self._print_info.get("TotalTicks")
+
+    @property
+    def file_name(self) -> str:
+        """Returns the name of the file being printed."""
+        return self._print_info.get("Filename")
