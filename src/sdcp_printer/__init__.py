@@ -134,13 +134,23 @@ class SDCPPrinter:
 
     @property
     def current_status(self) -> list[SDCPMachineStatus]:
-        """The printer's curent status."""
+        """The printer's current status."""
         return self._status_message and self._status_message.current_status
 
     @property
     def uv_led_temperature(self) -> float:
         """The printer's UV LED temperature in degrees Celsius."""
         return self._status_message and self._status_message.uv_led_temperature
+
+    @property
+    def screen_usage(self) -> float:
+        """The printer's screen usage in seconds."""
+        return self._status_message and self._status_message.screen_usage
+
+    @property
+    def film_usage(self) -> int:
+        """The number of layers printed on the current film."""
+        return self._status_message and self._status_message.film_usage
 
     # endregion
 

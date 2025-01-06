@@ -136,8 +136,10 @@ class SDCPStatusMessage(SDCPMessage):
     def __init__(self, message_json: dict):
         """Constructor."""
         super().__init__(message_json)
+        self._status_section: dict = message_json["Status"]
+
         self._current_status = []
-        for status_value in message_json["Status"]["CurrentStatus"]:
+        for status_value in self._status_section["CurrentStatus"]:
             try:
                 self._current_status.append(SDCPMachineStatus(status_value))
             except ValueError:
@@ -151,4 +153,14 @@ class SDCPStatusMessage(SDCPMessage):
     @property
     def uv_led_temperature(self) -> float:
         """Returns the UV LED temperature in degrees Celsius."""
-        return self._message_json["Status"].get("TempOfUVLED")
+        return self._status_section.get("TempOfUVLED")
+
+    @property
+    def screen_usage(self) -> float:
+        """Returns the screen usage in seconds."""
+        return self._status_section.get("PrintScreen")
+
+    @property
+    def film_usage(self) -> int:
+        """Returns the number of layers printed on the current film."""
+        return self._status_section.get("ReleaseFilm")
