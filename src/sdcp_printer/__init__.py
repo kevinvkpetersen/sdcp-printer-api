@@ -138,7 +138,7 @@ class SDCPPrinter:
         return self._status_message and self._status_message.current_status
 
     @property
-    def uv_led_temperture(self) -> float:
+    def uv_led_temperature(self) -> float:
         """The printer's UV LED temperature in degrees Celsius."""
         return self._status_message and self._status_message.uv_led_temperature
 
