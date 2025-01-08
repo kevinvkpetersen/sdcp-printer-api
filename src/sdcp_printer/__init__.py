@@ -153,6 +153,13 @@ class SDCPPrinter:
         return self._status_message and self._status_message.film_usage
 
     @property
+    def is_printing(self) -> bool:
+        """Returns True if the printer is currently printing."""
+        return (
+            self._status_message and SDCPMachineStatus.PRINTING in self.current_status
+        )
+
+    @property
     def print_status(self) -> SDCPPrintStatus:
         """Returns the status of the print job."""
         return self._status_message and self._status_message.print_status
