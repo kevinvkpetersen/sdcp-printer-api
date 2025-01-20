@@ -1,7 +1,7 @@
 [project]
 name = "sdcp_printer"
 description = "API to communicate with 3D printers using the SDCP protocol."
-version = "0.2.0"
+version = "0.3.0"
 requires-python = ">=3.11"
 dependencies = [
     "asyncio-dgram",
