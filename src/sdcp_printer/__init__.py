@@ -35,6 +35,7 @@ class SDCPPrinter:
     _connection: ClientConnection = None
     _is_connected: bool = False
     _callbacks: list[callable] = []
+    _requests: dict[str, callable] = {}
 
     _discovery_message: SDCPDiscoveryMessage = None
     _status_message: SDCPStatusMessage = None
@@ -256,7 +257,7 @@ class SDCPPrinter:
 
         match parsed_message.topic:
             case "response":
-                pass
+                self._handle_response(parsed_message)
             case "status":
                 self._update_status(parsed_message)
                 self._fire_callbacks()
@@ -273,6 +274,25 @@ class SDCPPrinter:
 
         self._callbacks.append(callback)
         _logger.info(f"{self._ip_address}: Callback registered")
+
+    def _handle_response(self, response: SDCPResponseMessage) -> None:
+        try:
+            request_id = response._message_json["Data"]["RequestID"]
+        except:
+            return  # invalid response, no RequestID
+
+        if request_id in self._requests:
+            _logger.debug(
+                f"{self._ip_address}: Handling response for request ID {request_id}"
+            )
+            callback = self._requests[request_id]
+            del self._requests[request_id]
+            callback(response)
+        else:
+            _logger.debug(
+                f"{self._ip_address}: No callback found for request ID {request_id};"
+                f"cmd: {response._message_json.get('Data',{}).get('Cmd', 'UNKNOWN')}"
+            )
 
     def _fire_callbacks(self) -> None:
         """Calls all registered callbacks."""
@@ -297,6 +317,30 @@ class SDCPPrinter:
                 timeout,
             )
         )
+
+    async def send_request_async(
+        self,
+        payload: dict,
+        timeout: float = None,
+    ) -> SDCPMessage:
+        """Sends a request to the printer, waiting for a matching response"""
+        if self._connection is None:
+            raise Exception("No connection established")
+
+        # Expect a request id, throw on key error if we don't have oen
+        request_id = payload["Data"]["RequestID"]
+        resp: asyncio.Future[SDCPMessage] = asyncio.Future()
+        def on_message(message: SDCPMessage) -> None:
+            resp.set_result(message)
+        self._requests[request_id] = on_message
+
+        _logger.debug(f"{self._ip_address}: Sending request with payload: {payload}")
+        try:
+            async with asyncio.timeout(timeout):
+                await self._connection.send(json.dumps(payload))
+                return await resp
+        finally:
+            self._requests.pop(request_id, None)
 
     async def _send_request_async(
         self,
